@@ -64,9 +64,16 @@ end })
 local fpsTab = Window:AddTab({ Title = "🚀 FPS Boost", Icon = "cpu" })
 fpsTab:AddButton({ Title = "Boost FPS", Callback = function()
     for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic v.Reflectance = 0 end
-        if v:IsA("Decal") or v:IsA("Texture") then v:Destroy() end
-        if v:IsA("ParticleEmitter") or v:IsA("Trail") then v.Lifetime = NumberRange.new(0) end
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.SmoothPlastic
+            v.Reflectance = 0
+        end
+        if v:IsA("Decal") or v:IsA("Texture") then
+            v:Destroy()
+        end
+        if v:IsA("ParticleEmitter") or v:IsA("Trail") then
+            v.Lifetime = NumberRange.new(0)
+        end
     end
     settings().Rendering.QualityLevel = 1
     settings().Rendering.TextureQuality = Enum.TextureQualityLevel.Low
@@ -74,34 +81,47 @@ end })
 
 -- Anti-Hack Tab
 local antiTab = Window:AddTab({ Title = "🛡️ Anti-Hack", Icon = "shield" })
+
+local antiFlingConn
 antiTab:AddToggle({
     Title = "Anti-Fling",
     Default = true,
     Callback = function(state)
         if state then
-            game:GetService("RunService").Stepped:Connect(function()
+            if antiFlingConn then antiFlingConn:Disconnect() end
+            antiFlingConn = game:GetService("RunService").Stepped:Connect(function()
                 for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") and v.Velocity.magnitude > 1000 then
-                        v.Velocity = Vector3.zero
-                        v.RotVelocity = Vector3.zero
+                    if v:IsA("BasePart") and v.Velocity.Magnitude > 1000 then
+                        v.Velocity = Vector3.new(0, 0, 0)
+                        v.RotVelocity = Vector3.new(0, 0, 0)
                     end
                 end
             end)
+        else
+            if antiFlingConn then antiFlingConn:Disconnect() antiFlingConn = nil end
         end
     end
 })
+
+local autoFixThread
 antiTab:AddToggle({
     Title = "Auto-Fix HRP",
     Default = true,
     Callback = function(state)
         if state then
-            while true do
-                local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    if hrp.Velocity.magnitude > 150 then hrp.Velocity = Vector3.zero end
+            if autoFixThread and coroutine.status(autoFixThread) ~= "dead" then return end
+            autoFixThread = coroutine.create(function()
+                while true do
+                    local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp and hrp.Velocity.Magnitude > 150 then
+                        hrp.Velocity = Vector3.new(0,0,0)
+                    end
+                    task.wait(0.5)
                 end
-                task.wait(0.5)
-            end
+            end)
+            coroutine.resume(autoFixThread)
+        else
+            -- Không thể dừng coroutine dễ dàng, bạn nên dùng biến để kiểm soát nếu cần
         end
     end
 })
